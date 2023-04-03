@@ -198,13 +198,59 @@ def position_birth_search(position, age, cur, conn):
 #     the passed year. 
 
 def make_winners_table(data, cur, conn):
-    pass
+    cur.execute("CREATE TABLE IF NOT EXISTS Winners (id INTEGER PRIMARY KEY, name TEXT)")
+    winners = []
+    for season in data["seasons"]:
+        if season["winner"] != None:
+            winners.append((season["winner"]["id"], season["winner"]["name"]))
+    
+    for winner in winners:
+        cur.execute(
+            "INSERT OR IGNORE INTO Winners "
+            "(id, name) "
+            "VALUES (?, ?) ",
+            (winner[0], winner[1])
+        )
+    conn.commit()
 
 def make_seasons_table(data, cur, conn):
-    pass
+    cur.execute("CREATE TABLE IF NOT EXISTS Seasons (id INTEGER PRIMARY KEY, winner_id TEXT, end_year INTEGER)")
+    
+    seasons = data["seasons"]
+    for season in seasons:
+        if season["winner"] != None:
+            end_year = int(season["endDate"].split("-")[0])
+            cur.execute(
+                "SELECT name "
+                "FROM Winners "
+                "WHERE id = ? ",
+                (season["winner"]["id"])
+            )
+            name = cur.fetchone()[0]
+
+            cur.execute(
+                "INSERT OR IGNORE INTO Seasons "
+                "(id, winner_id, end_year) "
+                "VALUES (?, ?, ?) ",
+                (season["id"], name, end_year)
+            )
+    conn.commit()
 
 def winners_since_search(year, cur, conn):
-    pass
+    winners = {}
+    cur.execute(
+        "SELECT W.name "
+        "FROM Seasons S, Winners W "
+        "WHERE S.winner_id = W.id "
+        "AND S.end_year >= ? ",
+        (year)
+    )
+    for row in cur:
+        if row[0] not in winners.keys():
+            winners[row[0]] = 1
+        else:
+            winners[row[0]] += 1
+    return winners
 
 
 class TestAllMethods(unittest.TestCase):
