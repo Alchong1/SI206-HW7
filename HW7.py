@@ -53,17 +53,20 @@ def make_positions_table(data, cur, conn):
 #     created for you -- see make_positions_table above for details.
 
 def make_players_table(data, cur, conn):
+    # Make the Players table
+    cur.execute("CREATE TABLE IF NOT EXISTS Players (id INTEGER PRIMARY KEY, name TEXT, position_id INTEGER, birthyear INTEGER, nationality TEXT)")
+
     players = data["squad"]
     for player in players:
-        # Retrieve the position id first using the player id
+        # Retrieve the position id first using the position
         cur.execute(
-            "SELECT position "
+            "SELECT id "
             "FROM Positions "
-            "WHERE id = ? ",
-            (player["id"])
+            "WHERE position = ? ",
+            (player["position"])
         )
         position_id = cur.fetchone()[0]
-        
+
         # Add the player to the database
         year = int(player["dateOfBirth"].split("-")[0])
         cur.execute(
@@ -72,8 +75,8 @@ def make_players_table(data, cur, conn):
             "VALUES (?,?,?,?,?) ",
             (player["id"], player["name"], position_id, year, player["nationality"])
         )
-        conn.commit()
-    pass
+        
+    conn.commit()
 
 ## [TASK 2]: 10 points
 # Finish the function nationality_search
