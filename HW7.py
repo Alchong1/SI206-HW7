@@ -1,7 +1,7 @@
 
-# Your name:
-# Your student id:
-# Your email:
+# Your name: Alex Chong
+# Your student id: 3607 9853
+# Your email: alchong@umich.edu
 # List who you have worked with on this project:
 
 import unittest
@@ -53,6 +53,26 @@ def make_positions_table(data, cur, conn):
 #     created for you -- see make_positions_table above for details.
 
 def make_players_table(data, cur, conn):
+    players = data["squad"]
+    for player in players:
+        # Retrieve the position id first using the player id
+        cur.execute(
+            "SELECT position "
+            "FROM Positions "
+            "WHERE id = ? ",
+            (player["id"])
+        )
+        position_id = cur.fetchone()[0]
+        
+        # Add the player to the database
+        year = int(player["dateOfBirth"].split("-")[0])
+        cur.execute(
+            "INSERT OR IGNORE INTO Players "
+            "(id, name, position_id, birthyear, nationality) "
+            "VALUES (?,?,?,?,?) ",
+            (player["id"], player["name"], position_id, year, player["nationality"])
+        )
+        conn.commit()
     pass
 
 ## [TASK 2]: 10 points
