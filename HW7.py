@@ -63,7 +63,7 @@ def make_players_table(data, cur, conn):
             "SELECT id "
             "FROM Positions "
             "WHERE position = ? ",
-            (player["position"])
+            (player["position"],)
         )
         position_id = cur.fetchone()[0]
 
@@ -73,7 +73,7 @@ def make_players_table(data, cur, conn):
             "INSERT OR IGNORE INTO Players "
             "(id, name, position_id, birthyear, nationality) "
             "VALUES (?,?,?,?,?) ",
-            (player["id"], player["name"], position_id, year, player["nationality"])
+            (player["id"], player["name"], position_id, year, player["nationality"],)
         )
         
     conn.commit()
@@ -95,7 +95,7 @@ def nationality_search(countries, cur, conn):
             "SELECT name, position_id, nationality "
             "FROM Players "
             "WHERE nationality = ? ",
-            (country)
+            (country,)
         )
         for row in cur:
             answer.append(row)
@@ -123,7 +123,7 @@ def birthyear_nationality_search(age, country, cur, conn):
         "FROM Players "
         "WHERE nationality = ? "
         "AND birthyear < ? ",
-        (country, 2023 - age)
+        (country, 2023 - age,)
     )
     answer = []
     for row in cur:
@@ -150,12 +150,12 @@ def birthyear_nationality_search(age, country, cur, conn):
 def position_birth_search(position, age, cur, conn):
     answer = []
     cur.execute(
-        "SELECT name, pos.position, birthyear "
+        "SELECT P.name, pos.position, P.birthyear "
         "FROM Players P, Positions pos "
         "WHERE P.position_id = pos.id "
-        "AND pos.id = ? "
-        "AND birthyear > ? ",
-        (position, 2023 - age)
+        "AND pos.position = ? "
+        "AND P.birthyear > ? ",
+        (position, 2023 - age,)
     )
     for row in cur:
         answer.append(row)
@@ -209,7 +209,7 @@ def make_winners_table(data, cur, conn):
             "INSERT OR IGNORE INTO Winners "
             "(id, name) "
             "VALUES (?, ?) ",
-            (winner[0], winner[1])
+            (winner[0], winner[1],)
         )
     conn.commit()
 
@@ -224,7 +224,7 @@ def make_seasons_table(data, cur, conn):
                 "SELECT name "
                 "FROM Winners "
                 "WHERE id = ? ",
-                (season["winner"]["id"])
+                (season["winner"]["id"],)
             )
             name = cur.fetchone()[0]
 
@@ -232,7 +232,7 @@ def make_seasons_table(data, cur, conn):
                 "INSERT OR IGNORE INTO Seasons "
                 "(id, winner_id, end_year) "
                 "VALUES (?, ?, ?) ",
-                (season["id"], name, end_year)
+                (season["id"], name, end_year,)
             )
     conn.commit()
 
@@ -241,9 +241,9 @@ def winners_since_search(year, cur, conn):
     cur.execute(
         "SELECT W.name "
         "FROM Seasons S, Winners W "
-        "WHERE S.winner_id = W.id "
+        "WHERE S.winner_id = W.name "
         "AND S.end_year >= ? ",
-        (year)
+        (int(year),)
     )
     for row in cur:
         if row[0] not in winners.keys():
@@ -308,19 +308,29 @@ class TestAllMethods(unittest.TestCase):
     def test_make_winners_table(self):
         self.cur2.execute('SELECT * from Winners')
         winners_list = self.cur2.fetchall()
-
-        pass
+        d = sorted(winners_list, key=lambda x: x[0])
+        self.assertEqual(len(d), 7)
+        self.assertEqual(d[0], (57, 'Arsenal FC'))
+        self.assertEqual(d[-1], (338, 'Leicester City FC'))
 
     def test_make_seasons_table(self):
         self.cur2.execute('SELECT * from Seasons')
         seasons_list = self.cur2.fetchall()
-
-        pass
+        e = sorted(seasons_list, key=lambda x: x[0])
+        self.assertEqual(len(e), 28)
+        self.assertEqual(e[0], (23, 'Manchester City FC', 2018))
+        self.assertEqual(e[-1], (619, 'Manchester City FC', 2021))
 
     def test_winners_since_search(self):
+        self.cur2.execute('SELECT * from Seasons WHERE end_year >= 2016')
+        #self.assertEqual(self.cur2.fetchall(), 0)
+        f = winners_since_search("2016", self.cur2, self.conn2)
+        self.assertEqual(len(f.keys()), 4)
+        self.assertEqual(f["Leicester City FC"], 1)
 
-        pass
-
+        g = winners_since_search("2006", self.cur2, self.conn2)
+        self.assertEqual(len(g.keys()), 5)
+        self.assertEqual(g["Chelsea FC"], 4)
 
 def main():
 
